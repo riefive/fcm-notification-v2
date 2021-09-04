@@ -20,7 +20,6 @@ async function notificationAction(urlLink) {
   // based on https://stackoverflow.com/a/65376596 + https://developer.mozilla.org/en-US/docs/Web/API/Clients/openWindow
   if (!urlLink) { return false; }
   const windowClients = await self.clients.matchAll({ type: 'window' });
-  console.log(windowClients);
   if (!windowClients) { return false; }
   // if a Window tab matching the targeted URL already exists, focus that.
   const hadWindowToFocus = windowClients.some(client => client.url === urlLink ? (client.focus(), true) : false);
