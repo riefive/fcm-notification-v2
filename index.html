@@ -11,6 +11,8 @@
     <link rel="apple-touch-icon" href="/images/firebase-152x152.png">
     <link rel="icon" href="/favicon.ico">
     <link rel="manifest" href="/manifest.json">
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-messaging.js"></script>
     <title>FCM Notification Test</title>
     <style>
       .div-center {
@@ -18,7 +20,7 @@
       }
       .div-target {
         font-family: 'Courier New', Courier, monospace;
-        text-align: left; 
+        text-align: left !important; 
         word-break: break-all;
       }
     </style>
@@ -33,7 +35,7 @@
         FCM Notification Test
       </h1>
       <br>
-      <div id="target" class="target"></div>
+      <div id="target" class="div-target"></div>
     </div> 
 	  <script src="/index.js"></script>
   </body>

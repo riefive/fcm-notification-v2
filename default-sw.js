@@ -1,13 +1,13 @@
-var cacheName = 'fcm-test-app';
-var cacheLists = ['/config.json'];
+const cacheName = 'fcm-test-app';
+const cacheLists = ['/config.json'];
 
 async function initializeCache() {
-  var cache = await caches.open(cacheName)
+  const cache = await caches.open(cacheName)
   return cache.addAll(cacheLists)
 }
 
 async function removeCacheNotUse() {
-  var cacheNames = await caches.keys();
+  const cacheNames = await caches.keys();
   if (!Array.isArray(cacheNames)) { return false; }
   cacheNames.forEach(name => { 
     if (name !== cacheName) { return caches.delete(name); } 
@@ -16,26 +16,23 @@ async function removeCacheNotUse() {
   return true;
 }
 
-function notificationAction(url) {
-  // based on https://stackoverflow.com/a/65376596
-  const theClient = selt.clients;
-  if (!theClient) { return false; }
-  theClient.matchAll({ type: 'window' }).then(windowClients => {
-    for (var i = 0; i < windowClients.length; i++) {
-      var client = windowClients[i];
-      if (client.url === url && 'focus' in client) {
-        return client.focus();
-      }
-    }
-    if (theClient.openWindow) {
-      return theClient.openWindow(url);
-    }
-  });
+async function notificationAction(urlLink) {
+  // based on https://stackoverflow.com/a/65376596 + https://developer.mozilla.org/en-US/docs/Web/API/Clients/openWindow
+  if (!urlLink) { return false; }
+  const windowClients = await self.clients.matchAll({ type: 'window' });
+  console.log(windowClients);
+  if (!windowClients) { return false; }
+  // if a Window tab matching the targeted URL already exists, focus that.
+  const hadWindowToFocus = windowClients.some(client => client.url === urlLink ? (client.focus(), true) : false);
+  // otherwise, open a new tab to the applicable URL and focus it.
+  if (!hadWindowToFocus && self.clients.openWindow) {
+    self.clients.openWindow(urlLink);
+  }
   return true;
 }
 
 self.addEventListener('install', (event) => {
-  var isSkip = false;
+  const isSkip = false;
   if (isSkip) {
     event.waitUntil(skipWaiting());
   } else {
@@ -47,10 +44,37 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(removeCacheNotUse());
 }, false);
 
+self.addEventListener('push', (event) => {
+  // based on https://github.com/firebase/quickstart-js/issues/71
+  if (!event.data) { return false; }
+  if (event.custom) { return false;} // skip if event is our own custom event
+
+  const rawData = event.data;
+
+  // create a new event to dispatch
+  let newEvent = new Event('push');
+  newEvent.waitUntil = event.waitUntil.bind(event);
+  newEvent.data = {
+    prevData: rawData.json(),
+    json: () => {
+      let newData = rawData.json();
+      newData.data = { ...newData.data, ...newData.notification };
+      delete newData.notification;
+      return newData;
+    }
+  };     
+  newEvent.custom = true;
+  
+  event.stopImmediatePropagation(); // stop event propagation
+  dispatchEvent(newEvent); // dispatch the new wrapped event
+});
+
 self.addEventListener('notificationclick', (event) => {
-  console.log('event = ', event);
   const clickedNotification = event.notification;
+  const notificationData = (clickedNotification || {}).data;
   clickedNotification.close();
-  // event.notification.data.url
-  //event.waitUntil(self.clients.openWindow());
+  if (notificationData) {
+    const urlLink = notificationData.click_action || event.currentTarget.origin;
+    event.waitUntil(notificationAction(urlLink));
+  }
 }, false);
